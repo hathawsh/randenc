@@ -89,7 +89,7 @@ class Decryptor(object):
         signature = data[pos + 1:pos + 33]
         signed = data[pos + 33:]
         h = hmac.new(hmac_key, signed, hashlib.sha256).digest()
-        if h != signature:
+        if not uniform_time_equal(h, signature):
             raise DecryptionError("Signature mismatch")
 
         iv = signed[:16]
@@ -105,3 +105,26 @@ class Decryptor(object):
             raise DecryptionError("Compressor unknown: {0}".format(compressor))
 
         return msgpack.loads(packed, use_list=True, encoding='utf-8')
+
+
+def uniform_time_equal(a, b):
+    """Compare two strings in uniform time to defeat timing attacks.
+    """
+    len_a = len(a)
+    if len_a != len(b):
+        return False
+
+    diff = 0
+    same = 0
+    for a0, b0 in zip(a, b):
+        # Note that it is possible that adding 0 takes a slightly
+        # different amount of time than adding 1.  To ensure each
+        # character is processed in exactly the same amount of time, each
+        # loop iteration adds both 0 and 1, but to different accumulators
+        # depending on the characters.
+        diff += (a0 != b0)
+        same += (a0 == b0)
+
+    # Use both the 'diff' and 'same' variables to ensure neither gets
+    # optimized away by a compiler.
+    return diff == 0 and same == len_a

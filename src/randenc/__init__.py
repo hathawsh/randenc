@@ -23,6 +23,12 @@ class RandomEncryption(object):
             max_future=300,
         ):
 
+        self.dirpath = dirpath
+        self.length = length
+        self.freshness = freshness
+        self.max_age = max_age
+        self.max_future = max_future
+
         self.writer = KeyWriter(dirpath,
             length=length,
             freshness=freshness,
@@ -37,3 +43,9 @@ class RandomEncryption(object):
 
         self.encrypt = Encryptor(self.writer)
         self.decrypt = Decryptor(self.reader)
+
+    @property
+    def duration(self):
+        """Return the minimum number of seconds codes should survive."""
+        freshness = self.freshness
+        return max(self.max_age - freshness, freshness)
